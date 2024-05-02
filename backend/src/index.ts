@@ -1,15 +1,12 @@
-import express, { Request, RequestHandler, Response } from "express";
+import express, { Request, Response, urlencoded } from "express";
+import authRouter from "./routes/auth";
 
 const app = express();
 
-// app.use(bodyParser.json());
-const bodyParser: RequestHandler = (req, res, next) => {
-  req.on("data", (chunk) => {
-    req.body = JSON.parse(chunk);
-    next();
-  });
-};
 app.use(express.json());
+app.use(urlencoded({ extended: false }));
+//Api routes
+app.use("/auth", authRouter);
 
 app.get("/get/:id", (req: Request, res: Response) => {
   const body = req.body.text;
