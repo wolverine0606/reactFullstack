@@ -1,4 +1,11 @@
-import express, { Request, Response, urlencoded } from "express";
+import "express-async-errors";
+import "./db/index";
+import express, {
+  Request,
+  Response,
+  urlencoded,
+  ErrorRequestHandler,
+} from "express";
 import authRouter from "./routes/auth";
 
 const app = express();
@@ -14,6 +21,11 @@ app.get("/get/:id", (req: Request, res: Response) => {
 
   res.send(body + id);
 });
+
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  res.status(500).json({ message: err.message });
+};
+app.use(errorHandler);
 
 app.listen(8000, () => {
   console.log("the app is running on http://localhost:8000");
