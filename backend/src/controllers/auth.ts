@@ -4,13 +4,10 @@ import crypto from "crypto";
 import authVerificationTokenModel from "../models/authVerificationToken";
 import nodemailer from "nodemailer";
 import { sendErrorRes } from "../utils/helper";
+import { sign } from "jsonwebtoken";
 
 export const createNewUser: RequestHandler = async (req, res, next) => {
   const { email, password, name } = req.body;
-  if (!name) return sendErrorRes(res, "name is missing", 422);
-  if (!email) return sendErrorRes(res, "email is missing", 422);
-
-  if (!password) return sendErrorRes(res, "password is missing", 422);
   const existingUser = await UserModel.findOne({ email });
   if (existingUser) return sendErrorRes(res, "email is already in use", 401);
   const user = await UserModel.create({ email, password, name });
@@ -38,4 +35,50 @@ export const createNewUser: RequestHandler = async (req, res, next) => {
   });
 
   res.json({ message: "Please check your inbox." });
+};
+
+export const verifyEmail: RequestHandler = async (req, res) => {
+  //read incoming data
+  const { id, token } = req.body;
+  //find the token inside db using id
+  const authToken = await authVerificationTokenModel.findOne({ owner: id });
+  if (!authToken) return sendErrorRes(res, "unauthorized request!", 403);
+  //compare the token
+  const isMatched = await authToken.compareToken(token);
+  if (!isMatched) return sendErrorRes(res, "unvalid token!", 403);
+  //update the user
+  await UserModel.findByIdAndUpdate(id, { verified: true });
+  //delete the token
+  await authVerificationTokenModel.findByIdAndDelete(authToken._id);
+
+  res.json({ message: "thanks for joining us, your email is verified" });
+};
+
+export const signIn: RequestHandler = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await UserModel.findOne({ email });
+  if (!user) return sendErrorRes(res, "user not found", 403);
+  const matchPass = await user.comparePassword(password);
+  if (!matchPass) return sendErrorRes(res, "password is wrong", 403);
+
+  const payload = { id: user._id };
+
+  const accessToken = sign(payload, "secret", {
+    expiresIn: "15m",
+  });
+  const refreshToken = sign(payload, "secret");
+
+  if (!user.tokens) user.tokens = [refreshToken];
+  else user.tokens.push(refreshToken);
+
+  await user.save();
+
+  res.json({
+    profile: {
+      id: user._id,
+      email: user.email,
+      verified: user.verified,
+    },
+    tokens: { refresh: refreshToken, access: accessToken },
+  });
 };
