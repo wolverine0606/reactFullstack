@@ -5,6 +5,7 @@ import authVerificationTokenModel from "../models/authVerificationToken";
 import nodemailer from "nodemailer";
 import { sendErrorRes } from "../utils/helper";
 import { sign } from "jsonwebtoken";
+import blacklistModel from "../models/blacklist";
 
 export const createNewUser: RequestHandler = async (req, res, next) => {
   const { email, password, name } = req.body;
@@ -87,4 +88,17 @@ export const sendProfile: RequestHandler = async (req, res) => {
   res.json({
     profile: req.user,
   });
+};
+
+export const blacklistById: RequestHandler = async (req, res) => {
+  const { id } = req.body;
+  const user = await UserModel.findById(id);
+  if (!user) return sendErrorRes(res, "user not found", 403);
+  const isInBlackList = await blacklistModel.findOne({ email: user.email });
+  if (isInBlackList) return sendErrorRes(res, "user already in blacklist", 403);
+
+  await blacklistModel.create({
+    email: user.email,
+  });
+  res.json({ message: `user with email ${user.email} has added to blacklist` });
 };
