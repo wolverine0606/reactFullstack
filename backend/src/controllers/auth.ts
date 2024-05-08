@@ -1,13 +1,11 @@
 import { RequestHandler } from "express";
-import UserModel from "../models/user";
+import UserModel from "src/models/user";
 import crypto from "crypto";
-import authVerificationTokenModel from "../models/authVerificationToken";
-import nodemailer from "nodemailer";
-import { sendErrorRes } from "../utils/helper";
+import authVerificationTokenModel from "src/models/authVerificationToken";
+import { sendErrorRes } from "src/utils/helper";
 import { sign, verify } from "jsonwebtoken";
-import blacklistModel from "../models/blacklist";
-import Mail from "nodemailer/lib/mailer";
-import { mail } from "../utils/mail";
+import blacklistModel from "src/models/blacklist";
+import { mail } from "src/utils/mail";
 
 export const createNewUser: RequestHandler = async (req, res, next) => {
   const { email, password, name } = req.body;
@@ -143,5 +141,26 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
 
   res.json({
     tokens: { refresh: newRefreshToken, access: newAccessToken },
+  });
+};
+
+export const signOut: RequestHandler = async (req, res) => {
+  const { refreshToken } = req.body;
+  const user = await UserModel.findOne({
+    _id: req.user.id,
+    tokens: refreshToken,
+  });
+  console.log(req.user.id);
+
+  if (!user) return sendErrorRes(res, "Unauthorized request!", 401);
+
+  const filtered = user.tokens.filter((t) => t !== refreshToken);
+
+  user.tokens = filtered;
+
+  await user.save();
+
+  res.json({
+    message: "User signed out successfully!",
   });
 };

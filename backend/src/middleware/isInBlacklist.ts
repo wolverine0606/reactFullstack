@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import blacklistModel from "../models/blacklist";
+import blacklistModel from "src/models/blacklist";
 
 const isInBlackList: RequestHandler = async (req, res, next) => {
   const email = req.body.email;

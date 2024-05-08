@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { sendErrorRes } from "../utils/helper";
+import { sendErrorRes } from "src/utils/helper";
 import { Schema, ValidationError } from "yup";
 
 const validate = (schema: Schema): RequestHandler => {

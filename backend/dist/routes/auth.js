@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../controllers/auth");
+const auth_2 = require("../middleware/auth");
+const isInBlacklist_1 = __importDefault(require("../middleware/isInBlacklist"));
+const validator_1 = __importDefault(require("../middleware/validator"));
+const user_schema_1 = require("../utils/schemas/user-schema");
+const authRouter = (0, express_1.Router)();
+authRouter.post("/sign-in", isInBlacklist_1.default, auth_1.signIn);
+authRouter.post("/sign-up", (0, validator_1.default)(user_schema_1.newUserSchema), isInBlacklist_1.default, auth_1.createNewUser);
+authRouter.post("/verify", (0, validator_1.default)(user_schema_1.verifyTokenSchema), auth_1.verifyEmail);
+authRouter.get("/profile", auth_2.isAuth, auth_1.sendProfile);
+authRouter.post("/blacklist", auth_1.blacklistById);
+authRouter.get("/verify-token", auth_2.isAuth, auth_1.generateVerificationLink);
+authRouter.post("/refresh-token", auth_1.refreshVerificationToken);
+authRouter.post("/sign-out", auth_2.isAuth, auth_1.signOut);
+exports.default = authRouter;

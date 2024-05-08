@@ -6,12 +6,16 @@ import {
   refreshVerificationToken,
   sendProfile,
   signIn,
+  signOut,
   verifyEmail,
-} from "../controllers/auth";
-import validate from "../middleware/validator";
-import { newUserSchema, verifyTokenSchema } from "../utils/schemas/user-schema";
-import { isAuth } from "../middleware/auth";
-import isInBlackList from "../middleware/isInBlacklist";
+} from "src/controllers/auth";
+import { isAuth } from "src/middleware/auth";
+import isInBlackList from "src/middleware/isInBlacklist";
+import validate from "src/middleware/validator";
+import {
+  newUserSchema,
+  verifyTokenSchema,
+} from "src/utils/schemas/user-schema";
 
 const authRouter = Router();
 authRouter.post("/sign-in", isInBlackList, signIn);
@@ -26,5 +30,6 @@ authRouter.get("/profile", isAuth, sendProfile);
 authRouter.post("/blacklist", blacklistById);
 authRouter.get("/verify-token", isAuth, generateVerificationLink);
 authRouter.post("/refresh-token", refreshVerificationToken);
+authRouter.post("/sign-out", isAuth, signOut);
 
 export default authRouter;
