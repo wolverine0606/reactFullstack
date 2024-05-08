@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { JsonWebTokenError, TokenExpiredError, verify } from "jsonwebtoken";
-import UserModel from "../models/user";
-import { sendErrorRes } from "../utils/helper";
+import UserModel from "src/models/user";
+import { sendErrorRes } from "src/utils/helper";
 
 interface UserProfile {
   id: object;

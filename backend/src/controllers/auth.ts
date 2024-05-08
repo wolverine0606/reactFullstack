@@ -1,3 +1,4 @@
+//import 'dotenv/config'
 import { RequestHandler } from "express";
 import UserModel from "src/models/user";
 import crypto from "crypto";
@@ -7,11 +8,15 @@ import { sign, verify } from "jsonwebtoken";
 import blacklistModel from "src/models/blacklist";
 import { mail } from "src/utils/mail";
 
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const VERIFICATION_LINK = process.env.VERIFICATION_LINK;
+
 export const createNewUser: RequestHandler = async (req, res, next) => {
   const { email, password, name } = req.body;
   const existingUser = await UserModel.findOne({ email });
   if (existingUser) return sendErrorRes(res, "email is already in use", 401);
   const user = await UserModel.create({ email, password, name });
+  console.log(process.env);
 
   user.comparePassword(password);
 
@@ -19,7 +24,7 @@ export const createNewUser: RequestHandler = async (req, res, next) => {
 
   await authVerificationTokenModel.create({ owner: user._id, token });
 
-  const link = `http://localhost:8000/verify.html?id=${user._id}&token=${token}`;
+  const link = `${VERIFICATION_LINK}?id=${user._id}&token=${token}`;
   mail.sendVerification(user.email, link);
 
   res.json({ message: "Please check your inbox." });
@@ -51,10 +56,10 @@ export const signIn: RequestHandler = async (req, res) => {
 
   const payload = { id: user._id };
 
-  const accessToken = sign(payload, "secret", {
+  const accessToken = sign(payload, JWT_SECRET, {
     expiresIn: "15m",
   });
-  const refreshToken = sign(payload, "secret");
+  const refreshToken = sign(payload, JWT_SECRET);
 
   if (!user.tokens) user.tokens = [refreshToken];
   else user.tokens.push(refreshToken);
@@ -94,7 +99,7 @@ export const generateVerificationLink: RequestHandler = async (req, res) => {
   //read incoming data
   const { id } = req.user;
   const token = crypto.randomBytes(36).toString("hex");
-  const link = `http://localhost:8000/verify.html?id=${id}&token=${token}`;
+  const link = `${VERIFICATION_LINK}?id=${id}&token=${token}`;
 
   await authVerificationTokenModel.findOneAndDelete({ owner: id });
 
@@ -113,7 +118,9 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
 
   if (!refreshToken) sendErrorRes(res, "Unauthorized request!", 403);
 
-  const payload = verify(refreshToken, "secret") as { id: string };
+  const payload = verify(refreshToken, JWT_SECRET) as {
+    id: string;
+  };
 
   if (!payload.id) return sendErrorRes(res, "Unauthorized request!", 401);
 
@@ -126,10 +133,10 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
     await UserModel.findByIdAndUpdate(payload.id, { tokens: [] });
     return sendErrorRes(res, "Unauthorized request!", 401);
   }
-  const newAccessToken = sign({ id: user._id }, "secret", {
+  const newAccessToken = sign({ id: user._id }, JWT_SECRET, {
     expiresIn: "15m",
   });
-  const newRefreshToken = sign({ id: user._id }, "secret");
+  const newRefreshToken = sign({ id: user._id }, JWT_SECRET);
 
   const filtered = user.tokens.filter((t) => t !== refreshToken);
   console.log(filtered);
@@ -146,11 +153,12 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
 
 export const signOut: RequestHandler = async (req, res) => {
   const { refreshToken } = req.body;
+  const user1 = await UserModel.findById("6638dc1d7f23fc7ab6a6172e");
+
   const user = await UserModel.findOne({
     _id: req.user.id,
-    tokens: refreshToken,
+    tokens: { $in: [refreshToken] },
   });
-  console.log(req.user.id);
 
   if (!user) return sendErrorRes(res, "Unauthorized request!", 401);
 

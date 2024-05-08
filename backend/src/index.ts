@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "express-async-errors";
 import "./db/index";
 import express, {
@@ -7,6 +8,7 @@ import express, {
   ErrorRequestHandler,
 } from "express";
 import authRouter from "./routes/auth";
+console.log(process.env);
 
 const app = express();
 
