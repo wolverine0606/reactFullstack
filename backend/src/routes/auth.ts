@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   blacklistById,
   createNewUser,
+  generateVerificationLink,
+  refreshVerificationToken,
   sendProfile,
   signIn,
   verifyEmail,
@@ -22,7 +24,7 @@ authRouter.post(
 authRouter.post("/verify", validate(verifyTokenSchema), verifyEmail);
 authRouter.get("/profile", isAuth, sendProfile);
 authRouter.post("/blacklist", blacklistById);
-
-authRouter.post("/refresh-token");
+authRouter.get("/verify-token", isAuth, generateVerificationLink);
+authRouter.post("/refresh-token", refreshVerificationToken);
 
 export default authRouter;

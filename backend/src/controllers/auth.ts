@@ -4,8 +4,10 @@ import crypto from "crypto";
 import authVerificationTokenModel from "../models/authVerificationToken";
 import nodemailer from "nodemailer";
 import { sendErrorRes } from "../utils/helper";
-import { sign } from "jsonwebtoken";
+import { sign, verify } from "jsonwebtoken";
 import blacklistModel from "../models/blacklist";
+import Mail from "nodemailer/lib/mailer";
+import { mail } from "../utils/mail";
 
 export const createNewUser: RequestHandler = async (req, res, next) => {
   const { email, password, name } = req.body;
@@ -19,21 +21,8 @@ export const createNewUser: RequestHandler = async (req, res, next) => {
 
   await authVerificationTokenModel.create({ owner: user._id, token });
 
-  const link = `http://localhost:8000/verify?id=${user._id}&token=${token}`;
-
-  const transport = nodemailer.createTransport({
-    host: "sandbox.smtp.mailtrap.io",
-    port: 2525,
-    auth: {
-      user: "a51f0872466c3e",
-      pass: "e7627884c8a943",
-    },
-  });
-  await transport.sendMail({
-    to: user.email,
-    from: "verification@myapp.com",
-    html: `<h1>Please click on <a href=${link}> this link </a> to verify your account.</h1>`,
-  });
+  const link = `http://localhost:8000/verify.html?id=${user._id}&token=${token}`;
+  mail.sendVerification(user.email, link);
 
   res.json({ message: "Please check your inbox." });
 };
@@ -101,4 +90,58 @@ export const blacklistById: RequestHandler = async (req, res) => {
     email: user.email,
   });
   res.json({ message: `user with email ${user.email} has added to blacklist` });
+};
+
+export const generateVerificationLink: RequestHandler = async (req, res) => {
+  //read incoming data
+  const { id } = req.user;
+  const token = crypto.randomBytes(36).toString("hex");
+  const link = `http://localhost:8000/verify.html?id=${id}&token=${token}`;
+
+  await authVerificationTokenModel.findOneAndDelete({ owner: id });
+
+  await authVerificationTokenModel.create({ owner: id, token });
+
+  await mail.sendVerification(req.user.email, link);
+
+  res.json({ message: "check your inbox" });
+};
+
+export const refreshVerificationToken: RequestHandler = async (req, res) => {
+  console.log(req.body);
+
+  const { refreshToken } = req.body;
+  console.log(refreshToken);
+
+  if (!refreshToken) sendErrorRes(res, "Unauthorized request!", 403);
+
+  const payload = verify(refreshToken, "secret") as { id: string };
+
+  if (!payload.id) return sendErrorRes(res, "Unauthorized request!", 401);
+
+  const user = await UserModel.findOne({
+    _id: payload.id,
+    tokens: refreshToken,
+  });
+
+  if (!user) {
+    await UserModel.findByIdAndUpdate(payload.id, { tokens: [] });
+    return sendErrorRes(res, "Unauthorized request!", 401);
+  }
+  const newAccessToken = sign({ id: user._id }, "secret", {
+    expiresIn: "15m",
+  });
+  const newRefreshToken = sign({ id: user._id }, "secret");
+
+  const filtered = user.tokens.filter((t) => t !== refreshToken);
+  console.log(filtered);
+
+  user.tokens = filtered;
+  user.tokens.push(newRefreshToken);
+
+  await user.save();
+
+  res.json({
+    tokens: { refresh: newRefreshToken, access: newAccessToken },
+  });
 };
