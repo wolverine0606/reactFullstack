@@ -4,6 +4,8 @@ import PasswordResetTokenModel from "src/models/passwordResetToken";
 import UserModel from "src/models/user";
 import { sendErrorRes } from "src/utils/helper";
 
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
 interface UserProfile {
   id: object;
   name: string;
@@ -22,11 +24,14 @@ declare global {
 export const isAuth: RequestHandler = async (req, res, next) => {
   try {
     const authToken = req.headers.authorization;
+
     if (!authToken) return sendErrorRes(res, "unauthorized request", 403);
 
     const token = authToken.split("Bearer ")[1]; // ["Bearer", "token i need"]
+    console.log(token);
 
-    const payload = verify(token, "secret") as { id: string };
+    const payload = verify(token, JWT_SECRET) as { id: string };
+    console.log(payload.id);
 
     const user = await UserModel.findById(payload.id);
     if (!user) return sendErrorRes(res, "unauthorized request", 403);

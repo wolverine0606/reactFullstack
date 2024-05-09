@@ -36,8 +36,6 @@ schema.pre("save", async function (next) {
   next();
 });
 schema.methods.compareToken = async function (token) {
-  console.log("compare token");
-
   return await compare(token, this.token);
 };
 

@@ -205,17 +205,26 @@ export const updatePassword: RequestHandler = async (req, res) => {
 
   user.password = password;
   await user.save();
-  console.log("user saved");
 
   const a = await PasswordResetTokenModel.findOneAndDelete({
     owner: user._id,
   });
-  console.log(a);
-
-  console.log("token deleted");
 
   await mail.sendPasswordUpdateMessage(user.email);
-  console.log("mail sent");
 
   res.json({ message: "Password updated successfully!" });
+};
+
+export const updateProfile: RequestHandler = async (req, res) => {
+  console.log("update");
+
+  const { name } = req.body;
+  if (!name) sendErrorRes(res, "no name found", 403);
+
+  const user = await UserModel.findByIdAndUpdate(req.user.id, { name });
+
+  if (!user) sendErrorRes(res, "no user found", 403);
+  user!.save();
+
+  res.json({ message: "profile updated" });
 };

@@ -77,7 +77,6 @@ const handleSubmit = async (evt) => {
   submitButton.disabled = false;
   submitButton.innerText = "Update password";
 
-  //   console.log(res);
   if (!res.ok) {
     const { message } = await res.json();
     messageTag.style.display = "block";
