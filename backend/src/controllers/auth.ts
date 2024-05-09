@@ -7,16 +7,17 @@ import { sendErrorRes } from "src/utils/helper";
 import { sign, verify } from "jsonwebtoken";
 import blacklistModel from "src/models/blacklist";
 import { mail } from "src/utils/mail";
+import PasswordResetTokenModel from "src/models/passwordResetToken";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const VERIFICATION_LINK = process.env.VERIFICATION_LINK;
+const PASSRESET_LINK = process.env.PASSRESET_LINK;
 
-export const createNewUser: RequestHandler = async (req, res, next) => {
+export const createNewUser: RequestHandler = async (req, res) => {
   const { email, password, name } = req.body;
   const existingUser = await UserModel.findOne({ email });
   if (existingUser) return sendErrorRes(res, "email is already in use", 401);
   const user = await UserModel.create({ email, password, name });
-  console.log(process.env);
 
   user.comparePassword(password);
 
@@ -111,10 +112,7 @@ export const generateVerificationLink: RequestHandler = async (req, res) => {
 };
 
 export const refreshVerificationToken: RequestHandler = async (req, res) => {
-  console.log(req.body);
-
   const { refreshToken } = req.body;
-  console.log(refreshToken);
 
   if (!refreshToken) sendErrorRes(res, "Unauthorized request!", 403);
 
@@ -139,7 +137,6 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
   const newRefreshToken = sign({ id: user._id }, JWT_SECRET);
 
   const filtered = user.tokens.filter((t) => t !== refreshToken);
-  console.log(filtered);
 
   user.tokens = filtered;
   user.tokens.push(newRefreshToken);
@@ -153,7 +150,6 @@ export const refreshVerificationToken: RequestHandler = async (req, res) => {
 
 export const signOut: RequestHandler = async (req, res) => {
   const { refreshToken } = req.body;
-  const user1 = await UserModel.findById("6638dc1d7f23fc7ab6a6172e");
 
   const user = await UserModel.findOne({
     _id: req.user.id,
@@ -171,4 +167,55 @@ export const signOut: RequestHandler = async (req, res) => {
   res.json({
     message: "User signed out successfully!",
   });
+};
+
+export const generateForgetPassToken: RequestHandler = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await UserModel.findOne({ email });
+  if (!user) return sendErrorRes(res, "User not found!", 404);
+  // delete all the previous tokens
+  await PasswordResetTokenModel.findOneAndDelete({ owner: user._id });
+  const token = crypto.randomBytes(36).toString("hex");
+  await PasswordResetTokenModel.create({ owner: user._id, token });
+  const passResetLink = `${PASSRESET_LINK}?id=${user._id}&token=${token}`;
+  // send email
+  mail.sendPassReset(user.email, passResetLink);
+  res.json({ message: "prease check your email" });
+};
+
+export const GrandValid: RequestHandler = (req, res) => {
+  res.json({ valid: true });
+};
+
+export const updatePassword: RequestHandler = async (req, res) => {
+  const { id, password } = req.body;
+
+  const user = await UserModel.findById(id);
+
+  if (!user) return sendErrorRes(res, "User not found!", 404);
+
+  const matched = await user.comparePassword(password);
+  if (matched)
+    return sendErrorRes(
+      res,
+      "Your new password cannot be same as old password.",
+      422
+    );
+
+  user.password = password;
+  await user.save();
+  console.log("user saved");
+
+  const a = await PasswordResetTokenModel.findOneAndDelete({
+    owner: user._id,
+  });
+  console.log(a);
+
+  console.log("token deleted");
+
+  await mail.sendPasswordUpdateMessage(user.email);
+  console.log("mail sent");
+
+  res.json({ message: "Password updated successfully!" });
 };

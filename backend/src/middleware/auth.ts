@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { JsonWebTokenError, TokenExpiredError, verify } from "jsonwebtoken";
+import PasswordResetTokenModel from "src/models/passwordResetToken";
 import UserModel from "src/models/user";
 import { sendErrorRes } from "src/utils/helper";
 
@@ -47,4 +48,17 @@ export const isAuth: RequestHandler = async (req, res, next) => {
     }
     next(err);
   }
+};
+
+export const isValidPassResetToken: RequestHandler = async (req, res, next) => {
+  const { id, token } = req.body;
+  const resetPassToken = await PasswordResetTokenModel.findOne({ owner: id });
+  if (!resetPassToken)
+    sendErrorRes(res, "Unauthorized request, invalid token", 403);
+  // compare token
+  const isValid = await resetPassToken!.compareToken(token);
+  if (!isValid)
+    sendErrorRes(res, "Unauthorized request, token is expired", 403);
+
+  next();
 };

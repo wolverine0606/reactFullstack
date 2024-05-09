@@ -1,7 +1,6 @@
 const messageTag = document.getElementById("message");
 
 window.addEventListener("DOMContentLoaded", async () => {
-  console.log("dfaa");
   const params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => {
       return searchParams.get(prop);

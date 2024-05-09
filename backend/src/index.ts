@@ -8,7 +8,6 @@ import express, {
   ErrorRequestHandler,
 } from "express";
 import authRouter from "./routes/auth";
-console.log(process.env);
 
 const app = express();
 
