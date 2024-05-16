@@ -7,6 +7,7 @@ interface UserDocument extends Document {
   name: string;
   verified: boolean;
   tokens: string[];
+  avatar: { url: string; id: string };
 }
 
 interface Methods {
@@ -24,6 +25,11 @@ const userSchema = new Schema<UserDocument, {}, Methods>(
         type: String,
       },
     ],
+    avatar: {
+      type: Object,
+      url: String,
+      id: String,
+    },
   },
   { timestamps: true }
 );

@@ -24,6 +24,9 @@ app.get("/get/:id", (req: Request, res: Response) => {
 
   res.send(body + id);
 });
+app.post("/upload-file", (req, res) => {
+  
+})
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   res.status(500).json({ message: err.message });

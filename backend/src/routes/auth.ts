@@ -9,6 +9,7 @@ import {
   sendProfile,
   signIn,
   signOut,
+  updateAvatar,
   updatePassword,
   updateProfile,
   verifyEmail,
@@ -32,10 +33,12 @@ authRouter.post(
 );
 authRouter.post("/verify", validate(verifyTokenSchema), verifyEmail);
 authRouter.get("/profile", isAuth, sendProfile);
+// blacklist
 authRouter.post("/blacklist", blacklistById);
 authRouter.get("/verify-token", isAuth, generateVerificationLink);
 authRouter.post("/refresh-token", refreshVerificationToken);
 authRouter.post("/sign-out", isAuth, signOut);
+
 // forget password
 authRouter.post("/forget-pass", generateForgetPassToken);
 authRouter.post(
@@ -50,5 +53,7 @@ authRouter.post(
   isValidPassResetToken,
   updatePassword
 );
+
 authRouter.patch("/update-profile", isAuth, updateProfile);
+authRouter.patch("/update-avatar", isAuth, updateAvatar);
 export default authRouter;

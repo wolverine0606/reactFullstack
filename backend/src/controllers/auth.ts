@@ -219,7 +219,8 @@ export const updateProfile: RequestHandler = async (req, res) => {
   console.log("update");
 
   const { name } = req.body;
-  if (!name) sendErrorRes(res, "no name found", 403);
+  if (!name || typeof name !== "string" || name.trim().length < 3)
+    sendErrorRes(res, "invalid name!", 403);
 
   const user = await UserModel.findByIdAndUpdate(req.user.id, { name });
 
@@ -227,4 +228,10 @@ export const updateProfile: RequestHandler = async (req, res) => {
   user!.save();
 
   res.json({ message: "profile updated" });
+};
+
+export const updateAvatar: RequestHandler = (req, res) => {
+  const { avatar } = req.body;
+  const user = UserModel.findOneAndUpdate(req.user.id, avatar);
+  res.json({ profile: { ...req.user, avatar } });
 };
